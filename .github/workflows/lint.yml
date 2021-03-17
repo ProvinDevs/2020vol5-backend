@@ -14,8 +14,16 @@ jobs:
         go-version: 1.15
       id: go
 
+    - name: Set up protoc
+      run: |
+        curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v3.15.5/protoc-3.15.5-linux-x86_64.zip"
+        unzip protoc-3.15.5-linux-x86_64.zip -d $HOME/.local
+        go get -v google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
     - name: Check out code
       uses: actions/checkout@v2
 
     - name: Lint
-      run: go vet ./...
+      run: |
+        export PATH="$PATH:$HOME/.local/bin"
+        make lint
