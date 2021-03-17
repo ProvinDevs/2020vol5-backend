@@ -16,8 +16,8 @@ jobs:
 
     - name: Set up protoc
       run: |
-        sudo apt-get install -y protobuf-compiler
-        go get -v google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
+        curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v3.15.5/protoc-3.15.5-linux-x86_64.zip"
+        unzip protoc-3.15.5-linux-x86_64.zip -d $HOME/.local
 
     - name: Check out code
       uses: actions/checkout@v2
@@ -26,4 +26,6 @@ jobs:
       run: go mod download
 
     - name: Test
-      run: make test
+      run: |
+        export PATH="$PATH:$HOME/.local/bin"
+        make test
