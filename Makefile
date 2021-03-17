@@ -7,4 +7,10 @@ run: gen_types
 build: gen_types
 	go build -v -o server .
 
+lint: gen_types
+	go vet ./...
+
+test: gen_types
+	go test ./...
+
 all: build
