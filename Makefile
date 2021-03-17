@@ -2,9 +2,9 @@ gen_types: hello.proto
 	protoc --go_out=types --go-grpc_out=types hello.proto
 
 run: gen_types
-	go run .
+	go run -v .
 
 build: gen_types
-	go build -o server .
+	go build -v -o server .
 
 all: build
