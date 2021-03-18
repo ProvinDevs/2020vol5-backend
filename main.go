@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -14,15 +12,6 @@ import (
 
 type Server struct {
 	pb.UnimplementedHelloServer
-}
-
-func (s *Server) Greeting(_ context.Context, req *pb.GreetingRequest) (*pb.GreetingReply, error) {
-	name := req.GetName()
-	msg := fmt.Sprintf("Hello %s!", name)
-
-	log.Println(msg)
-
-	return &pb.GreetingReply{Message: msg}, nil
 }
 
 func main() {
