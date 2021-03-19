@@ -10,10 +10,6 @@ import (
 	pb "github.com/ProvinDevs/2020vol5-backend/types"
 )
 
-type Server struct {
-	pb.UnimplementedHelloServer
-}
-
 func main() {
 	log.SetOutput(os.Stdout)
 	port := os.Getenv("PORT")
