@@ -2,22 +2,18 @@ syntax = "proto3";
 option go_package = "./;types";
 
 service Hello {
-    rpc CreateRoom (CreateRoomRequest) returns (CreateRoomPayload) {}
+    rpc CreateRoom (CreateRoomRequest) returns (Room) {}
     // signalling streamが切れると、そのユーザーはRoomからも抜けた扱いになる
     rpc Signalling (stream SignallingMessage) returns (stream SignallingMessage) {}
 }
 
 message CreateRoomRequest {}
 
-message CreateRoomPayload {
-    string room_id = 1;
-}
-
 message SignallingMessage {
     oneof body {
         SelfIntroduceMessage self_intro = 1;
         RoomInfoRequest room_info_request = 2;
-        RoomInfoResponse room_info_response = 3;
+        Room room_info_response = 3;
         SdpMessage sdp_message = 4;
         IceCandidateMessage ice_message = 5;
     }
@@ -25,8 +21,9 @@ message SignallingMessage {
 
 message RoomInfoRequest {}
 
-message RoomInfoResponse {
-    repeated string joined_user_ids = 1;
+message Room {
+    string room_id = 1;
+    repeated string joined_user_ids = 2;
 }
 
 message SelfIntroduceMessage {
