@@ -18,4 +18,4 @@ test: $(TYPE_FILES) fmt
 server.a: $(TYPE_FILES) fmt
 	go build -v -o server.a .
 
-all: sever.a 
+all: server.a
