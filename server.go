@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -63,8 +62,16 @@ func (s *Server) CreateRoom(_ context.Context, _ *pb.CreateRoomRequest) (*pb.Roo
 	return &pbRoom, nil
 }
 
-func (s *Server) Signalling(_ pb.Hello_SignallingServer) error {
-	return fmt.Errorf("unimplemented")
+func (s *Server) Signalling(stream pb.Hello_SignallingServer) error {
+	worker := Worker{
+		mu:     &s.mu,
+		rooms:  &s.rooms,
+		room:   nil,
+		st:     stream,
+		userId: "",
+	}
+
+	return worker.start()
 }
 
 type Worker struct {
@@ -73,6 +80,10 @@ type Worker struct {
 	room   *Room
 	st     pb.Hello_SignallingServer
 	userId string
+}
+
+func (w *Worker) start() error {
+	return w.recvRoutine()
 }
 
 func (w *Worker) recvRoutine() error {
