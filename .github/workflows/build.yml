@@ -26,4 +26,4 @@ jobs:
     - name: Build
       run: |
         export PATH="$PATH:$HOME/.local/bin"
-        make build
+        make all
