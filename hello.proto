@@ -22,13 +22,13 @@ message SignallingMessage {
 message RoomInfoRequest {}
 
 message Room {
-    string room_id = 1;
+    int32 room_id = 1;
     repeated string joined_user_ids = 2;
 }
 
 message SelfIntroduceMessage {
     string my_id = 1;
-    string room_id = 2;
+    int32 room_id = 2;
 }
 
 message SdpMessage {
