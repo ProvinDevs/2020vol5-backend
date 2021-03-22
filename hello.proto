@@ -4,18 +4,25 @@ option go_package = "./;types";
 service Hello {
     rpc CreateRoom (CreateRoomRequest) returns (Room) {}
     // signalling streamが切れると、そのユーザーはRoomからも抜けた扱いになる
-    rpc Signalling (stream SignallingMessage) returns (stream SignallingMessage) {}
+    rpc Signalling (stream SendSignallingMessage) returns (stream RecvSignallingMessage) {}
 }
 
 message CreateRoomRequest {}
 
-message SignallingMessage {
+message SendSignallingMessage {
     oneof body {
         SelfIntroduceMessage self_intro = 1;
         RoomInfoRequest room_info_request = 2;
-        Room room_info_response = 3;
-        SdpMessage sdp_message = 4;
-        IceCandidateMessage ice_message = 5;
+        SendSdpMessage sdp_message = 3;
+        SendIceCandidateMessage ice_message = 4;
+    }
+}
+
+message RecvSignallingMessage {
+    oneof body {
+       Room room_info_response = 1;
+       RecvSdpMessage sdp_message = 2;
+       RecvIceCandidateMessage ice_message = 3;
     }
 }
 
@@ -31,13 +38,23 @@ message SelfIntroduceMessage {
     int32 room_id = 2;
 }
 
-message SdpMessage {
+message SendSdpMessage {
+    string session_description = 1;
+    string to_id = 3;
+}
+
+message SendIceCandidateMessage {
+    string ice_candidate = 1;
+    string to_id = 3;
+}
+
+message RecvSdpMessage {
     string session_description = 1;
     string from_id = 2;
     string to_id = 3;
 }
 
-message IceCandidateMessage {
+message RecvIceCandidateMessage {
     string ice_candidate = 1;
     string from_id = 2;
     string to_id = 3;
