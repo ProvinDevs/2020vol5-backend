@@ -18,13 +18,4 @@ test: $(TYPE_FILES) fmt
 server.a: $(TYPE_FILES) fmt
 	go build -v -o server.a .
 
-proxy:
-	grpcwebproxy \
-		--allow_all_origins \
-		--backend_addr localhost:4000 \
-		--use_websockets \
-		--server_tls_cert_file ./certs/cert.pem \
-		--server_tls_key_file ./certs/privkey.pem \
-		--server_http_tls_port 3000
-
 all: server.a

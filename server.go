@@ -91,15 +91,27 @@ func (w *Worker) recvRoutine() error {
 		msg, err := w.st.Recv()
 
 		if err == io.EOF {
-			// FIXME: user left from room
+			w.onStreamClose()
 			return nil
 		}
 
 		if err != nil {
+			w.onStreamClose()
 			return err
 		}
 
 		w.onMessage(msg)
+	}
+}
+
+func (w *Worker) onStreamClose() {
+	log.Printf("User %s has left\n", w.userId)
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	for _, room := range *w.rooms {
+		delete(room.joinedUserIds, w.userId)
 	}
 }
 
@@ -147,8 +159,8 @@ func (w *Worker) onSelfIntroduce(msg *pb.SelfIntroduceMessage) {
 
 	for _, v := range *w.rooms {
 		if v.id == roomId {
-			w.room.joinedUserIds[userId] = w.st
 			w.room = v
+			w.room.joinedUserIds[userId] = w.st
 			ok = true
 			break
 		}
