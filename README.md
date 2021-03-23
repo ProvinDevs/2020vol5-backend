@@ -20,19 +20,11 @@ then run this:
 go get -v google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
 ```
 
-## make proxy
-
-You need to install `grpcwebproxy`.
-
-```
-go get -v github.com/improbable-eng/grpc-web/go/grpcwebproxy
-```
-
 and put your certs to `certs/{cert.pem,privkey.pem}`.
 grpc-web needs to run with this proxy and also needs these certs for TLS.
 
 ## launch
 
-Just run `make run`, then run `make proxy` on another terminal.
+Just run `make run`. It requires that certs file (cert.pem, privkey.pem) in /certs/ folder
 
-After that, you can access on port 3000.
+After that, you can access on port 4000.
