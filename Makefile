@@ -1,16 +1,21 @@
-gen_types: hello.proto
+TYPE_FILES=types/hello.pb.go types/hello_grpc.pb.go
+
+$(TYPE_FILES): hello.proto
 	protoc --go_out=types --go-grpc_out=types hello.proto
 
-run: gen_types
+fmt: $(TYPE_FILES)
+	go fmt ./...
+
+run: $(TYPE_FILES) fmt
 	go run -v .
 
-build: gen_types
-	go build -v -o server .
-
-lint: gen_types
+lint: $(TYPE_FILES) fmt
 	go vet ./...
 
-test: gen_types
+test: $(TYPE_FILES) fmt
 	go test ./...
 
-all: build
+server.a: $(TYPE_FILES) fmt
+	go build -v -o server.a .
+
+all: server.a
