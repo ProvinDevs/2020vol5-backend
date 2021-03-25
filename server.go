@@ -124,7 +124,7 @@ func (w *Worker) onMessage(msg *pb.SendSignallingMessage) {
 		w.onSelfIntroduce(typedBody.SelfIntro)
 
 	case *pb.SendSignallingMessage_RoomInfoRequest:
-		log.Printf("SelfIntroMessage has came from %s\n", w.userId)
+		log.Printf("RoomInfoRequest has came from %s\n", w.userId)
 		w.onRoomInfoRequest()
 
 	case *pb.SendSignallingMessage_SdpMessage:
@@ -177,7 +177,7 @@ func (w *Worker) onSelfIntroduce(msg *pb.SelfIntroduceMessage) {
 
 func (w *Worker) onRoomInfoRequest() {
 	w.mu.Lock()
-	defer w.mu.Lock()
+	defer w.mu.Unlock()
 
 	if w.room == nil {
 		// FIXME:
