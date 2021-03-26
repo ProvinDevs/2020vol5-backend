@@ -16,6 +16,6 @@ test: $(TYPE_FILES) fmt
 	go test ./...
 
 server.a: $(TYPE_FILES) fmt
-	go build -v -o server.a .
+	go build -v --tags netgo -o server.a .
 
 all: server.a

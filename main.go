@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
@@ -22,6 +23,12 @@ func main() {
 		port = "4000"
 	}
 
+	if _, err := strconv.Atoi(port); err != nil {
+		log.Fatalln("PORT must be valid port number")
+	}
+
+	port = ":" + port
+
 	server := grpc.NewServer()
 	pb.RegisterHelloServer(server, &Server{})
 
@@ -29,7 +36,7 @@ func main() {
 
 	httpServer := http.Server{
 		ErrorLog: log.Default(),
-		Addr:     ":4000",
+		Addr:     port,
 		Handler: http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			resp.Header().Set("Access-Control-Allow-Origin", "*")
 			resp.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
@@ -49,7 +56,18 @@ func main() {
 		}),
 	}
 
-	log.Println("starting to serve at :4000")
+	var err error
+	noTLS := os.Getenv("NO_TLS")
 
-	httpServer.ListenAndServeTLS("./certs/cert.pem", "./certs/privkey.pem")
+	if noTLS != "" {
+		log.Printf("starting to serve at %s without TLS\n", port)
+		err = httpServer.ListenAndServe()
+	} else {
+		log.Printf("starting to serve at %s\n", port)
+		err = httpServer.ListenAndServeTLS("./certs/cert.pem", "./certs/privkey.pem")
+	}
+
+	if err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }
