@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -48,6 +49,9 @@ retry:
 	newRoom := Room{id: id, joinedUserIds: make(map[string]pb.Hello_SignallingServer)}
 	s.rooms = append(s.rooms, &newRoom)
 
+	log.Printf("New Room(%d) has created\n", newRoom.id)
+	printCurrentRooms(&s.rooms)
+
 	return &newRoom
 }
 
@@ -58,8 +62,6 @@ func (s *Server) CreateRoom(_ context.Context, _ *pb.CreateRoomRequest) (*pb.Roo
 		RoomId:        int32(newRoom.id),
 		JoinedUserIds: []string{},
 	}
-
-	log.Printf("New Room(%d) has created\n", pbRoom.RoomId)
 
 	return &pbRoom, nil
 }
@@ -130,6 +132,8 @@ func (w *Worker) onStreamClose() {
 		(*w.rooms)[len(*w.rooms)-1] = &Room{}
 		*w.rooms = (*w.rooms)[:len(*w.rooms)-1]
 	}
+
+	printCurrentRooms(w.rooms)
 }
 
 func (w *Worker) onMessage(msg *pb.SendSignallingMessage) {
@@ -300,4 +304,13 @@ func (w *Worker) sendToOtherUserInSameRoom(userId string, msg *pb.RecvSignalling
 	}
 
 	return false
+}
+
+func printCurrentRooms(rooms *[]*Room) {
+	buffer := ""
+	for _, room := range *rooms {
+		buffer += fmt.Sprintf("%d, ", room.id)
+	}
+
+	log.Printf("current rooms are: %s", buffer)
 }
