@@ -46,6 +46,10 @@ func main() {
 				return
 			}
 
+			if req.URL.Path == "/.well-known/signalling/health" {
+				return
+			}
+
 			if wrappedGrpc.IsGrpcWebRequest(req) {
 				wrappedGrpc.ServeHTTP(resp, req)
 			}

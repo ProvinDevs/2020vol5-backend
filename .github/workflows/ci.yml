@@ -1,0 +1,97 @@
+name: ci
+on:
+  push:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Set up Go 1.16
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+        id: go
+
+      - name: Set up protoc
+        run: |
+          curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v3.15.5/protoc-3.15.5-linux-x86_64.zip"
+          unzip protoc-3.15.5-linux-x86_64.zip -d $HOME/.local
+          go get -v google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Lint
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          make lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Set up Go 1.16
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+        id: go
+
+      - name: Set up protoc
+        run: |
+          curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v3.15.5/protoc-3.15.5-linux-x86_64.zip"
+          unzip protoc-3.15.5-linux-x86_64.zip -d $HOME/.local
+          go get -v google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get Dependencies
+        run: go mod download
+
+      - name: Test
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          make test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Set up Go 1.16
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+        id: go
+
+      - name: Set up protoc
+        run: |
+          curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v3.15.5/protoc-3.15.5-linux-x86_64.zip"
+          unzip protoc-3.15.5-linux-x86_64.zip -d $HOME/.local
+          go get -v google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          make all
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - test
+      - build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: provindevs
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+      - run: gcloud auth configure-docker --quiet
+      - run: docker build --tag ${{ secrets.IMAGE_NAME }} .
+      - run: docker push ${{ secrets.IMAGE_NAME }}
