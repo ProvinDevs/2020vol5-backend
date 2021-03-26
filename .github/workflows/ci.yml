@@ -92,6 +92,7 @@ jobs:
           project_id: provindevs
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           export_default_credentials: true
-      - run: gcloud auth configure-docker --quiet
-      - run: docker build . -t ${{ secrets.DOCKER_IMAGE }}
-      - run: docker push ${{ secrets.DOCKER_IMAGE }}
+      - run: |
+          docker build . -t ${{ secrets.DOCKER_IMAGE }}
+          gcloud auth configure-docker --quiet
+          docker push ${{ secrets.DOCKER_IMAGE }}
