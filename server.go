@@ -21,6 +21,13 @@ const (
 	roomMaxCount = roomIdMax - roomIdMin
 )
 
+type Server struct {
+	pb.UnimplementedHelloServer
+
+	mu    sync.Mutex
+	rooms []*Room
+}
+
 func (s *Server) newRoom() *Room {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -44,13 +51,6 @@ retry:
 	return &newRoom
 }
 
-type Server struct {
-	pb.UnimplementedHelloServer
-
-	mu    sync.Mutex
-	rooms []*Room
-}
-
 func (s *Server) CreateRoom(_ context.Context, _ *pb.CreateRoomRequest) (*pb.Room, error) {
 	newRoom := s.newRoom()
 
@@ -58,6 +58,8 @@ func (s *Server) CreateRoom(_ context.Context, _ *pb.CreateRoomRequest) (*pb.Roo
 		RoomId:        int32(newRoom.id),
 		JoinedUserIds: []string{},
 	}
+
+	log.Printf("New Room(%d) has created\n", pbRoom.RoomId)
 
 	return &pbRoom, nil
 }
@@ -110,8 +112,23 @@ func (w *Worker) onStreamClose() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	for _, room := range *w.rooms {
+	emptyRoomIndexes := []int{}
+
+	for index, room := range *w.rooms {
 		delete(room.joinedUserIds, w.userId)
+
+		if len(room.joinedUserIds) == 0 {
+			emptyRoomIndexes = append(emptyRoomIndexes, index)
+		}
+	}
+
+	// remove empty rooms from w.rooms
+	for _, index := range emptyRoomIndexes {
+		log.Printf("Room %d has dropped.\n", (*w.rooms)[index].id)
+
+		(*w.rooms)[index] = (*w.rooms)[len(*w.rooms)-1]
+		(*w.rooms)[len(*w.rooms)-1] = &Room{}
+		*w.rooms = (*w.rooms)[:len(*w.rooms)-1]
 	}
 }
 
