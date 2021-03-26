@@ -20,9 +20,10 @@ message SendSignallingMessage {
 
 message RecvSignallingMessage {
     oneof body {
-       Room room_info_response = 1;
-       RecvSdpMessage sdp_message = 2;
-       RecvIceCandidateMessage ice_message = 3;
+        SelfIntroduceResult self_intro_result = 1;
+        Room room_info_response = 2;
+        RecvSdpMessage sdp_message = 3;
+        RecvIceCandidateMessage ice_message = 4;
     }
 }
 
@@ -36,6 +37,11 @@ message Room {
 message SelfIntroduceMessage {
     string my_id = 1;
     int32 room_id = 2;
+}
+
+message SelfIntroduceResult {
+    bool ok = 1;
+    string error_message = 2;
 }
 
 message SendSdpMessage {
