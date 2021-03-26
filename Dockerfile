@@ -13,4 +13,3 @@ FROM gcr.io/distroless/static
 COPY --from=build /src/server.a /usr/local/bin/server
 
 CMD ["/usr/local/bin/server"]
-
