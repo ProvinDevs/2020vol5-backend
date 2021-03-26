@@ -93,6 +93,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           export_default_credentials: true
       - run: |
-          docker build . -t ${{ secrets.DOCKER_IMAGE }}
+          gcloud config set project ${{ secrets.GCP_PROJECT }}
+          docker build --tag asia.gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.IMAGE_NAME }} .
           gcloud auth configure-docker --quiet
-          docker push ${{ secrets.DOCKER_IMAGE }}
+          docker push asia.gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.IMAGE_NAME }}
