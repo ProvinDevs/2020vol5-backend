@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -20,6 +21,13 @@ const (
 	roomIdMax    = 99999
 	roomMaxCount = roomIdMax - roomIdMin
 )
+
+type Server struct {
+	pb.UnimplementedHelloServer
+
+	mu    sync.Mutex
+	rooms []*Room
+}
 
 func (s *Server) newRoom() *Room {
 	s.mu.Lock()
@@ -41,14 +49,10 @@ retry:
 	newRoom := Room{id: id, joinedUserIds: make(map[string]pb.Hello_SignallingServer)}
 	s.rooms = append(s.rooms, &newRoom)
 
+	log.Printf("New Room(%d) has created\n", newRoom.id)
+	printCurrentRooms(&s.rooms)
+
 	return &newRoom
-}
-
-type Server struct {
-	pb.UnimplementedHelloServer
-
-	mu    sync.Mutex
-	rooms []*Room
 }
 
 func (s *Server) CreateRoom(_ context.Context, _ *pb.CreateRoomRequest) (*pb.Room, error) {
@@ -110,9 +114,26 @@ func (w *Worker) onStreamClose() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	for _, room := range *w.rooms {
+	emptyRoomIndexes := []int{}
+
+	for index, room := range *w.rooms {
 		delete(room.joinedUserIds, w.userId)
+
+		if len(room.joinedUserIds) == 0 {
+			emptyRoomIndexes = append(emptyRoomIndexes, index)
+		}
 	}
+
+	// remove empty rooms from w.rooms
+	for _, index := range emptyRoomIndexes {
+		log.Printf("Room %d has dropped.\n", (*w.rooms)[index].id)
+
+		(*w.rooms)[index] = (*w.rooms)[len(*w.rooms)-1]
+		(*w.rooms)[len(*w.rooms)-1] = &Room{}
+		*w.rooms = (*w.rooms)[:len(*w.rooms)-1]
+	}
+
+	printCurrentRooms(w.rooms)
 }
 
 func (w *Worker) onMessage(msg *pb.SendSignallingMessage) {
@@ -136,17 +157,31 @@ func (w *Worker) onMessage(msg *pb.SendSignallingMessage) {
 		w.onIceCandidateMessage(typedBody.IceMessage)
 
 	default:
-		log.Printf("%s has sent message which has unknown messae in body: %#v\n", w.userId, body)
+		log.Printf("%s has sent message which has unknown message in body: %#v\n", w.userId, body)
 	}
+}
+
+func (w *Worker) sendSelfIntroResult(ok bool, msg string) {
+	w.st.Send(
+		&pb.RecvSignallingMessage{
+			Body: &pb.RecvSignallingMessage_SelfIntroResult{
+				SelfIntroResult: &pb.SelfIntroduceResult{
+					Ok:           ok,
+					ErrorMessage: msg,
+				},
+			},
+		},
+	)
 }
 
 func (w *Worker) onSelfIntroduce(msg *pb.SelfIntroduceMessage) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	if w.userId != "" && w.room == nil {
-		// FIXME:
-		log.Println("FIXME: error handling on user has sent self-introduce twice or more")
+	if w.userId != "" && w.room != nil {
+		log.Printf("%s has self-introduced twice\n", w.userId)
+		w.sendSelfIntroResult(false, "this is your second self-introducing and it's not allowed.")
+
 		return
 	}
 
@@ -158,6 +193,13 @@ func (w *Worker) onSelfIntroduce(msg *pb.SelfIntroduceMessage) {
 	ok := false
 
 	for _, v := range *w.rooms {
+		if _, exists := v.joinedUserIds[userId]; exists {
+			log.Printf("Duplicated UserID %s\n", userId)
+			w.sendSelfIntroResult(false, "UserID is duplicated. Change to another one.")
+		}
+	}
+
+	for _, v := range *w.rooms {
 		if v.id == roomId {
 			w.room = v
 			w.room.joinedUserIds[userId] = w.st
@@ -167,12 +209,14 @@ func (w *Worker) onSelfIntroduce(msg *pb.SelfIntroduceMessage) {
 	}
 
 	if !ok {
-		// FIXME:
-		log.Println("FIXME: error handling on no room matched to requested id")
+		log.Printf("%s tried to join room %d which doesn't exist.\n", userId, roomId)
+		w.sendSelfIntroResult(false, "specified room doesn't exist")
+
 		return
 	}
 
-	log.Printf("User %s joined to room %d", msg.GetMyId(), roomId)
+	w.sendSelfIntroResult(true, "")
+	log.Printf("User %s joined to room %d\n", msg.GetMyId(), roomId)
 }
 
 func (w *Worker) onRoomInfoRequest() {
@@ -180,8 +224,7 @@ func (w *Worker) onRoomInfoRequest() {
 	defer w.mu.Unlock()
 
 	if w.room == nil {
-		// FIXME:
-		log.Println("FIXME: error handling on user has not joined to any room")
+		log.Println("? has requested RoomInfo without self-introducing")
 		return
 	}
 
@@ -208,8 +251,7 @@ func (w *Worker) onSdpMessage(msg *pb.SendSdpMessage) {
 	defer w.mu.Unlock()
 
 	if w.userId == "" {
-		// FIXME:
-		log.Println("error handling on user hasn't self-introduced but requested to send sdp message to other")
+		log.Printf("? has requested to send Sdp to %s without self-introducing\n", msg.GetToId())
 		return
 	}
 
@@ -233,8 +275,7 @@ func (w *Worker) onIceCandidateMessage(msg *pb.SendIceCandidateMessage) {
 	defer w.mu.Unlock()
 
 	if w.userId == "" {
-		// FIXME:
-		log.Println("error handling on user hasn't self-introduced but requested to send ice candidate message to other")
+		log.Printf("? has requested to send IceCandidate to %s without self-introducing\n", msg.GetToId())
 		return
 	}
 
@@ -263,4 +304,13 @@ func (w *Worker) sendToOtherUserInSameRoom(userId string, msg *pb.RecvSignalling
 	}
 
 	return false
+}
+
+func printCurrentRooms(rooms *[]*Room) {
+	buffer := ""
+	for _, room := range *rooms {
+		buffer += fmt.Sprintf("%d, ", room.id)
+	}
+
+	log.Printf("current rooms are: %s", buffer)
 }
