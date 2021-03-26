@@ -77,3 +77,17 @@ jobs:
         run: |
           export PATH="$PATH:$HOME/.local/bin"
           make all
+
+  deploy:
+    runs-on: ubuntu-latest
+    #if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: provindevs
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+      - run: gcloud auth configure-docker --quiet
+      - run: docker build . -t ${{ secrets.DOCKER_IMAGE }}
+      - run: docker push ${{ secrets.DOCKER_IMAGE }}
