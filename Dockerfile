@@ -9,7 +9,7 @@ WORKDIR /src
 RUN make all
 
 
-FROM alpine:3.13
+FROM gcr.io/distroless/static
 COPY --from=build /src/server.a /usr/local/bin/server
 
 CMD ["/usr/local/bin/server"]
